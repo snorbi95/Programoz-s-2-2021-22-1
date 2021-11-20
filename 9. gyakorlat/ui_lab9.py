@@ -11,7 +11,8 @@
 from PySide2.QtCore import *
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
-from worker_class import Worker
+from worker_class import *
+import re
 
 
 class Ui_MainWindow(object):
@@ -87,7 +88,10 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.add_button.clicked.connect(self.add_worker)
+        self.add_button.clicked.connect(self.add_or_modify_worker)
+        self.edit_button.clicked.connect(self.edit_worker)
+        self.modify_button.clicked.connect(self.add_or_modify_worker)
+        self.delete_button.clicked.connect(self.delete_worker)
 
         QMetaObject.connectSlotsByName(MainWindow)
     # setupUi
@@ -107,17 +111,84 @@ class Ui_MainWindow(object):
         self.worker_label.setText(QCoreApplication.translate("MainWindow", u"List of persons:", None))
     # retranslateUi
 
-    def add_worker(self):
+    def add_or_modify_worker(self):
         id = int(self.id_input.text())
         name = self.name_input.text()
         address = self.address_input.text()
         phone_number = self.phone_input.text()
         email = self.email_input.text()
-        worker = Worker(id, name, address, phone_number, email)
-        if worker not in self.workers:
-            self.workers.append(worker)
+        try:
+            if len(name) == 0:
+                raise MissingDataException('Name')
+            if not re.match('^(\+36)\d{8,9}$', phone_number):
+                raise PhoneNumberFormatException(phone_number)
+            if not re.match('[\w\.-]+@[a-z]{1}[a-z\.-]+(\.[a-z]{2,3})$', email):
+                raise EmailFormatException(email)
+        except MissingDataException as mde:
+            msg = QMessageBox()
+            msg.setWindowTitle('Waring!')
+            msg.setText(mde.__str__())
+            msg.exec_()
+        except PhoneNumberFormatException as pnfe:
+            msg = QMessageBox()
+            msg.setWindowTitle('Waring!')
+            msg.setText(pnfe.__str__())
+            msg.exec_()
+        except EmailFormatException as efe:
+            msg = QMessageBox()
+            msg.setWindowTitle('Waring!')
+            msg.setText(efe.__str__())
+            msg.exec_()
+        else:
+            if self.id_input.isReadOnly():
+                for worker in self.workers:
+                    if worker.id == id:
+                        worker.name = name
+                        worker.address = address
+                        worker.phone_number = phone_number
+                        worker.email = email
+                self.print_worker()
+                self.save_to_file()
+                self.id_input.setReadOnly(False)
+            else:
+                worker = Worker(id, name, address, phone_number, email)
+                if worker not in self.workers:
+                    self.workers.append(worker)
+                    self.print_worker()
+                    self.save_to_file()
+            self.clear_input_fields()
+
+
+    def edit_worker(self):
+        if self.worker_list.currentItem():
+            text = self.worker_list.currentItem().text()
+            data = text.split(',')
+            self.id_input.setText(data[0])
+            self.name_input.setText(data[1])
+            self.address_input.setText(data[2])
+            self.phone_input.setText(data[3])
+            self.email_input.setText(data[4])
+            self.id_input.setReadOnly(True)
+        else:
+            msg = QMessageBox()
+            msg.setWindowTitle('Warning!')
+            msg.setText('Please select a worker!')
+            msg.exec_()
+
+    def delete_worker(self):
+        if self.worker_list.currentItem():
+            text = self.worker_list.currentItem().text()
+            id = int(text.split(',')[0])
+            for worker in self.workers:
+                if worker.id == id:
+                    self.workers.remove(worker)
             self.print_worker()
             self.save_to_file()
+        else:
+            msg = QMessageBox()
+            msg.setWindowTitle('Warning!')
+            msg.setText('Please select a worker!')
+            msg.exec_()
 
     def print_worker(self):
         self.worker_list.clear()
@@ -141,6 +212,13 @@ class Ui_MainWindow(object):
                 worker = Worker(id, name, address, phone_number, email)
                 self.workers.append(worker)
         self.print_worker()
+
+    def clear_input_fields(self):
+        self.id_input.clear()
+        self.name_input.clear()
+        self.address_input.clear()
+        self.phone_input.clear()
+        self.email_input.clear()
 
 import sys
 app = QApplication(sys.argv)

@@ -1,3 +1,27 @@
+class MissingDataException(Exception):
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return f'{self.value} is missing!'
+
+class PhoneNumberFormatException(Exception):
+
+    def __init__(self, phone_number):
+        self.phone_number = phone_number
+
+    def __str__(self):
+        return f'{self.phone_number} is invalid!'
+
+class EmailFormatException(Exception):
+
+    def __init__(self, email):
+        self.email = email
+
+    def __str__(self):
+        return f'{self.email} is invalid!'
+
 class Worker:
 
     def __init__(self, id, name, address, phone_number, email):
