@@ -1,8 +1,11 @@
 import csv
+import operator
 import string
 
 import nltk
+from matplotlib import pyplot as plt
 from nltk.corpus import stopwords
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 import numpy as np
 
@@ -45,11 +48,58 @@ def bag_of_words(tweets):
 
 def remove_stopwords(bow):
     new_bow = []
-    nltk.download('stopwords')
+    #nltk.download('stopwords')
+    stops = stopwords.words('english')
     for word in bow:
-        if word not in stopwords.words('english'):
+        if word not in stops:
             new_bow.append(word)
     return new_bow
+
+def get_word_dictionary(bow):
+    word_dict = {}
+    for word in bow:
+        if word not in word_dict:
+            word_dict[word] = 1
+        else:
+            word_dict[word] += 1
+    return sorted(word_dict.items(), key=operator.itemgetter(1), reverse=True)
+
+def plot_top_n_words(words, n):
+    x = []
+    y = []
+    for key, value in words[:n]:
+        x.append(key)
+        y.append(value)
+    plt.bar(x,y)
+    plt.show()
+    return x
+
+def plot_distributions_of_words(top_words, bow):
+    x = np.arange(1, len(bow) + 1)
+    y = np.zeros((len(top_words), len(bow)))
+    for top_word_index, top_word in enumerate(top_words):
+        for word_index, word in enumerate(bow):
+            if top_word == word:
+                y[top_word_index, word_index] = top_word_index + 1
+        plt.scatter(x, y[top_word_index,:], marker= '|')
+        plt.ylabel(top_words)
+    plt.show()
+
+def plot_sentiment_analysis(bow):
+    #nltk.download('vader_lexicon')
+    sid = SentimentIntensityAnalyzer()
+    concated = ''
+    for word in bow:
+        concated += word + ' '
+    sen_scores = sid.polarity_scores(concated)
+    print(sen_scores)
+    values = []
+    labels = []
+    for key, value in sen_scores.items():
+        values.append(value)
+        labels.append(key)
+    plt.pie(values[:-1], labels= labels[:-1], colors=['red', 'grey', 'green'], startangle=90)
+    plt.show()
 
 tweet_list = []
 
@@ -70,3 +120,8 @@ print(len(set(bow)))
 print(f'Az egyedi szavak aranya: {np.round(len(set(bow)) / len(bow) * 100,2)}%')
 bow = remove_stopwords(bow)
 print(len(bow))
+words = get_word_dictionary(bow)
+#print(words)
+#top_words = plot_top_n_words(words, 5)
+#plot_distributions_of_words(top_words, bow)
+plot_sentiment_analysis(bow)
