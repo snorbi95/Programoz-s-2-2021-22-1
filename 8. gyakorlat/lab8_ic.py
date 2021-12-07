@@ -79,6 +79,8 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
 
         self.add_train_button.clicked.connect(self.add_new_train)
+        self.load_trains_button.clicked.connect(self.load_trains)
+        self.train_list.itemClicked.connect(self.load_stops)
 
         QMetaObject.connectSlotsByName(MainWindow)
     # setupUi
@@ -104,6 +106,27 @@ class Ui_MainWindow(object):
         if ic.get_id() not in self.train_dict:
             self.train_dict[ic.get_id()] = ic
             self.train_list.addItem(f'{ic.get_id()} - {ic.get_name()}')
+
+    def load_trains(self):
+        filename, _ = QFileDialog.getOpenFileName(None, 'Select file...', '*.txt')
+        with open(filename, 'r') as in_file:
+            for line in in_file:
+                data = line.split(';')
+                id = int(data[0])
+                name = data[1]
+                arrival = data[2]
+                destination = data[3].rstrip()
+                ic = lab6.IC(id, name, arrival, destination)
+                if ic.get_id() not in self.train_dict:
+                    self.train_dict[ic.get_id()] = ic
+                    self.train_list.addItem(f'{ic.get_id()} - {ic.get_name()}')
+
+    def load_stops(self, item):
+        self.stops_list.clear()
+        data = item.text()
+        id = int(data.split(' ')[0])
+        for stop in self.train_dict[id].get_stops():
+            self.stops_list.addItem(stop.__str__())
 
 
 import sys
